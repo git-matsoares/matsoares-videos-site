@@ -1,0 +1,38 @@
+name: Atualizar Shorts
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/update-videos.yml'
+permissions:
+  contents: write
+concurrency:
+  group: shorts-feed
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Coletar Shorts
+        run: python scripts/sync_youtube.py
+      - name: Salvar lista
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add videos.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Atualizar Shorts"
+          git push origin HEAD:main
